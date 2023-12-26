@@ -2,7 +2,15 @@ package com.example.controller;
 
 import com.example.repository.User;
 import com.example.repository.UserRepository;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,8 +19,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class UserController {
-    @Autowired
-    UserRepository userRepository;
+    // Asumiendo que tienes una conexión a MongoDB ya configurada
+    MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
+    MongoDatabase database = mongoClient.getDatabase("practica2");
+    MongoCollection<Document> collection = database.getCollection("users");
 
     @GetMapping("/login")
     public String loginForm() {
@@ -21,9 +31,15 @@ public class UserController {
 
     @PostMapping("/login")
     public String login(@RequestParam String userName, @RequestParam String password, Model model) {
-        User user = userRepository.findByUserName(userName);
+        Document query = new Document();
+        query.append("userName", userName)
+                .append("password", Document.parse(password)); // Vulnerabilidad aquí
 
-        if (user != null && user.getPassword().equals(password)) {
+        // Ejecución de la consulta
+        Document user = collection.find(query).first();
+
+
+        if (user != null) {
             return "welcome";
         } else {
             model.addAttribute("loginError", true);
